@@ -1,6 +1,6 @@
 <#====================================================================
 Author        : Tiago DA SILVA - ATHEO INGENIERIE
-Version       : 1.0.0
+Version       : 1.0.1
 Creation Date : 2025-07-01
 Last Update   : 2025-07-01
 GitHub Repo   : https://github.com/TiagoDSLV/MyVeeamMonitoring
@@ -14,8 +14,19 @@ infrastructure details like repositories, proxies and license status.
 
 ====================================================================#>
 
+param (
+    [Parameter(Mandatory = $true)]
+    [string]$ConfigFileName = "MyVeeamReportJSON-Config.ps1"
+)
+
 # Load Configuration
-. "$PSScriptRoot\MyVeeamReportJSON-Config.ps1"
+$ConfigPath = Join-Path -Path $PSScriptRoot -ChildPath $ConfigFileName
+if (Test-Path $ConfigPath) {
+    . $ConfigPath
+} else {
+    Write-Warning "Config file '$ConfigPath' not found."
+    exit 1
+}
 
 #Region Update Script
 function Get-VersionFromScript {
@@ -28,26 +39,39 @@ function Get-VersionFromScript {
 
 $OutputPath = $MyInvocation.MyCommand.Path
 $FileURL = "https://raw.githubusercontent.com/TiagoDSLV/MyVeeamReportJSON/refs/heads/main/MyVeeamReportJSON-Script.ps1"
-$localScriptContent = Get-Content -Path $OutputPath -Raw  # Read local file content
-$localVersion = Get-VersionFromScript -Content $localScriptContent  # Extract local version
 
-$remoteScriptContent = Invoke-RestMethod -Uri $FileURL -UseBasicParsing  # Get remote file content
-$remoteVersion = Get-VersionFromScript -Content $remoteScriptContent  # Extract remote version
+# Lire le contenu local et la version
+$localScriptContent = Get-Content -Path $OutputPath -Raw
+$localVersion = Get-VersionFromScript -Content $localScriptContent
 
-# If versions are identical, log and skip update
-if ($localVersion -ne $remoteVersion) {
-  try {
-      $remoteScriptContent | Set-Content -Path $OutputPath -Encoding UTF8 -Force
-      Write-Host "Script updated."
-      Write-Host "Restarting script..."
-      Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File `"$OutputPath`""
-      exit
-  } catch {
-      Write-Warning "Update error: $_"
-  }
-} else {
-  Write-Host "Script is up to date."
+# Initialiser $remoteScriptContent et $remoteVersion
+$remoteScriptContent = $null
+$remoteVersion = $null
+
+try {
+    # Essayer de récupérer le script distant
+    $remoteScriptContent = Invoke-RestMethod -Uri $FileURL -UseBasicParsing
+    $remoteVersion = Get-VersionFromScript -Content $remoteScriptContent
+} catch {
+    Write-Warning "Failed to retrieve remote script content: $_"
+    # Optionnel : continuer avec l'ancien script sans mise à jour
+    return
 }
+
+if ($localVersion -ne $remoteVersion) {
+    try {
+        $remoteScriptContent | Set-Content -Path $OutputPath -Encoding UTF8 -Force
+        Write-Host "Script updated."
+        Write-Host "Restarting script..."
+        Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File `"$OutputPath`""
+        exit
+    } catch {
+        Write-Warning "Update error: $_"
+    }
+} else {
+    Write-Host "Script is up to date."
+}
+
 #enregion
 
 # Set ReportVersion
@@ -873,7 +897,7 @@ $outputAry
 # Get Veeam Version
 $objectVersion = (Get-VeeamVersion).productVersion
 
-# Création d’un hashtable
+# CrÃ©ation dâ€™un hashtable
 $jsonHash = [ordered]@{}
 $jsonHash.Add("reportVersion", $reportVersion)
 $jsonHash.Add("generationDate", $date_title)
@@ -2835,7 +2859,12 @@ If ($showLicExp) {
 
 #region JSON Output
 $jsonOutput = $jsonHash | ConvertTo-Json
-$jsonOutput | Out-File -FilePath $pathJSON  -Encoding UTF8
+If ($saveJSON) {
+  $jsonOutput | Out-File $pathJSON -Encoding UTF8
+If ($launchJSON) {
+Invoke-Item $pathJSON
+}
+}
 #endregion
 
 #region Output
@@ -2847,24 +2876,20 @@ $msg = New-Object System.Net.Mail.MailMessage($emailFrom, $emailTo)
 $msg.Subject = $emailSubject
 $attachment = New-Object System.Net.Mail.Attachment $pathJSON
 $msg.Attachments.Add($attachment)
-$body = "test"
+$body = @"
+Bonjour,
+
+Vous trouverez en pièce jointe le dernier rapport de sauvegarde Veeam au format JSON.
+
+Cordialement,
+"@
 $msg.Body = $body
-$msg.isBodyhtml = $false
-$smtp.send($msg)
-
-
-
-# Save JSON Report to File
-If ($saveJSON) {
-  $jsonOutput | Out-File $pathJSON
-If ($launchJSON) {
-Invoke-Item $pathJSON
-}
-}
+$msg.IsBodyHtml = $false
+$smtp.Send($msg)
 #endregion
 
 #region purge
 
-Get-childitem –path $pathJSON -Recurse | where-object {($_.LastWriteTime -lt (get-date).adddays(-$JPurge))} | Remove-Item
+Get-childitem -path $pathJSON -Recurse | where-object {($_.LastWriteTime -lt (get-date).adddays(-$JPurge))} | Remove-Item
 
 #endregion
