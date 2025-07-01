@@ -14,9 +14,10 @@ infrastructure details like repositories, proxies and license status.
 
 ====================================================================#>
 
+#Region Update Script
 param (
     [Parameter(Mandatory = $true)]
-    [string]$ConfigFileName = "MyVeeamReportJSON-Config.ps1"
+    [string]$ConfigFileName
 )
 
 # Load Configuration
@@ -31,13 +32,13 @@ if (Test-Path $ConfigPath) {
 #Region Update Script
 function Get-VersionFromScript {
   param ([string]$Content)
-  if ($Content -match "# Version\s*:\s*([\d\.]+)") {
+  if ($Content -match "Version\s*:\s*([\d\.]+)") {
       return $matches[1]  # Return the version string if found
   }
   return $null  # Return null if no version is found
 }
 
-$OutputPath = $MyInvocation.MyCommand.Path
+$OutputPath = ".\MyVeeamReportJSON-Script.ps1"
 $FileURL = "https://raw.githubusercontent.com/TiagoDSLV/MyVeeamReportJSON/refs/heads/main/MyVeeamReportJSON-Script.ps1"
 
 # Lire le contenu local et la version
