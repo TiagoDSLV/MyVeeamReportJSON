@@ -138,7 +138,7 @@ $showDetailedBk = $False
 # Show all Backup Sessions within time frame ($reportMode)
 $showAllSessBk = $False
 # Show all Backup Tasks from Sessions within time frame ($reportMode)
-$showAllTasksBk = $SDBackup
+$showAllTasksBk = $False
 # Show Running Backup Jobs
 $showRunningBk = $False
 # Show Running Backup Tasks
