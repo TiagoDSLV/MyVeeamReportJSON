@@ -131,8 +131,6 @@ $showMultiJobs = $true
 $showSummaryBk = $SDBackup
 # Show Backup Job Status
 $showJobsBk = $False
-# Show File Backup Job Status
-$showFileJobsBk = $SDBackup
 # Show detailed information for Backup Jobs/Sessions (Avg Speed, Total(GB), Processed(GB), Read(GB), Transferred(GB), Dedupe, Compression)
 $showDetailedBk = $False
 # Show all Backup Sessions within time frame ($reportMode)
