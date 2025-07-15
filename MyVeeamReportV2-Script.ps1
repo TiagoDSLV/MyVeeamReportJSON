@@ -3,7 +3,7 @@ Author        : Tiago DA SILVA - ATHEO INGENIERIE
 Version       : 1.0.1
 Creation Date : 2025-07-01
 Last Update   : 2025-07-01
-GitHub Repo   : https://github.com/TiagoDSLV/MyVeeamReportJSON/
+GitHub Repo   : https://github.com/TiagoDSLV/MyVeeamReportV2/
 ====================================================================
 
 DESCRIPTION:
@@ -37,8 +37,8 @@ function Get-VersionFromScript {
   return $null  # Return null if no version is found
 }
 
-$OutputPath = ".\MyVeeamReportJSON-Script.ps1"
-$FileURL = "https://raw.githubusercontent.com/TiagoDSLV/MyVeeamReportJSON/refs/heads/main/MyVeeamReportJSON-Script.ps1"
+$OutputPath = ".\MyVeeamReportV2-Script.ps1"
+$FileURL = "https://raw.githubusercontent.com/TiagoDSLV/MyVeeamReportV2/refs/heads/main/MyVeeamReportV2-Script.ps1"
 
 # Lire le contenu local et la version
 $localScriptContent = Get-Content -Path $OutputPath -Raw
