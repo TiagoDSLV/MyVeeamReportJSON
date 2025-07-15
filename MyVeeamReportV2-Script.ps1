@@ -1228,7 +1228,7 @@ if ($showFileJobsBk -and $allFileJobsBk.Count -gt 0) {
         $bodyFileJobsBk += ($bkJob | Select-Object `
             @{Name = "Job Name"; Expression = { $_.Name } },
             @{Name = "Enabled"; Expression = { $_.IsScheduleEnabled } },
-            @{Name = "Status"; Expression = {
+            @{Name = "State"; Expression = {
                 if ($bkJob.IsRunning) {
                     $s = $runningSessionsBk | Where-Object { $_.JobName -eq $bkJob.Name }
                     if ($s) {
