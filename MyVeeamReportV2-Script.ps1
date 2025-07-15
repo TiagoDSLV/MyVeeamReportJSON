@@ -1,6 +1,6 @@
 <#====================================================================
 Author        : Tiago DA SILVA - ATHEO INGENIERIE
-Version       : 1.0.2
+Version       : 1.0.3
 Creation Date : 2025-07-01
 Last Update   : 2025-07-01
 GitHub Repo   : https://github.com/TiagoDSLV/MyVeeamReportV2/
@@ -97,7 +97,7 @@ exit
 #region NonUser-Variables
 # Get all Backup/Backup Copy/Replica Jobs
 $allJobs = @()
-If ($showSummaryBk + $showJobsBk + $showFileJobsBk + $showAllSessBk + $showAllTasksBk + $showRunningBk +
+If ($showSummaryBk + $showJobsBk + $showAllSessBk + $showAllTasksBk + $showRunningBk +
 $showRunningTasksBk + $showWarnFailBk + $showTaskWFBk + $showSuccessBk + $showTaskSuccessBk +
 $showSummaryRp + $showJobsRp + $showAllSessRp + $showAllTasksRp + $showRunningRp +
 $showRunningTasksRp + $showWarnFailRp + $showTaskWFRp + $showSuccessRp + $showTaskSuccessRp +
@@ -111,8 +111,6 @@ $allJobs = Get-VBRJob -WarningAction SilentlyContinue
 #$allJobsBk = @($allJobs | Where-Object {$_.JobType -eq "Backup" -or $_.JobType -eq"NasBackup" })
 # Get all Backup Jobs
 $allJobsBk = @($allJobs | Where-Object {$_.JobType -eq "Backup"})
-# Get all File Backup Jobs
-$allFileJobsBk = @($allJobs | Where-Object {$_.JobType -eq "NasBackup"})
 # Get all Replication Jobs
 $allJobsRp = @($allJobs | Where-Object {$_.JobType -eq "Replica"})
 # Get all Backup Copy Jobs
@@ -142,11 +140,6 @@ $allJobsSb = @(Get-VBRSureBackupJob)
 $allSess = @()
 If ($allJobs) {
 $allSess = Get-VBRBackupSession
-}
-# Get all File / NAS Backup Sessions
-$allFileSess = @()
-If ($allFileJobs) {
-$allFileSess = Get-VBRNASBackupSession -Name *
 }
 
 # Get all Tape Backup Sessions
@@ -248,37 +241,6 @@ $warningSessionsBk = @($sessListBk | Where-Object {$_.Result -eq "Warning"})
 $failsSessionsBk = @($sessListBk | Where-Object {$_.Result -eq "Failed"})
 $runningSessionsBk = @($sessListBk | Where-Object {$_.State -eq "Working"})
 $failedSessionsBk = @($sessListBk | Where-Object {($_.Result -eq "Failed") -and ($_.WillBeRetried -ne "True")})
-
-# File Backup Session Section Start
-
-$fileSessListBk = @($allFileSess | Where-Object {($_.EndTime -ge (Get-Date).AddHours(-$HourstoCheck) -or $_.CreationTime -ge (Get-Date).AddHours(-$HourstoCheck) -or $_.State -eq "Working") -and $_.JobType -eq "Backup"})
-If ($null -ne $backupJob -and $backupJob -ne "") {
-$allFileJobsBkTmp = @()
-$fileSessListBkTmp = @()
-$fileBackupsBkTmp = @()
-Foreach ($bkJob in $backupJob) {
-$allFileJobsBkTmp += $allFileJobsBk | Where-Object {$_.Name -like $bkJob}
-$fileSessListBkTmp += $fileSessListBk | Where-Object {$_.JobName -like $bkJob}
-$fileBackupsBkTmp += $fileBackupsBk | Where-Object {$_.JobName -like $bkJob}
-}
-$allFileJobsBk = $allFileJobsBkTmp | Sort-Object Id -Unique
-$fileSessListBk = $fileSessListBkTmp | Sort-Object Id -Unique
-$fileBackupsBk = $fileBackupsBkTmp | Sort-Object Id -Unique
-}
-If ($onlyLastBk) {
-$tempFileSessListBk = $fileSessListBk
-$fileSessListBk = @()
-Foreach($job in $allFileJobsBk) {
-$fileSessListBk += $tempFileSessListBk | Where-Object {$_.Jobname -eq $job.name} | Sort-Object EndTime -Descending | Select-Object -First 1
-}
-}
-# Get Backup Session information
-$totalXferFileBk = 0
-$totalReadFileBk = 0
-
-$fileSessListBk | ForEach-Object {$totalXferFileBk += $([Math]::Round([Decimal]$_.Progress.TransferedSize/1GB, 2))}
-$fileSessListBk | ForEach-Object {$totalReadFileBk += $([Math]::Round([Decimal]$_.Progress.ReadSize/1GB, 2))}
-# End File Backup Session Section End
 
 # Gather all Replication Sessions within timeframe
 $sessListRp = @($allSess | Where-Object {($_.EndTime -ge (Get-Date).AddHours(-$HourstoCheck) -or $_.CreationTime -ge (Get-Date).AddHours(-$HourstoCheck) -or $_.State -eq "Working") -and $_.JobType -eq "Replica"})
@@ -1220,57 +1182,6 @@ if ($showJobsBk -and $allJobsBk.Count -gt 0) {
   $bodyJobsBk = $subHead01 + "Backup Job Status" + $subHead02 + $bodyJobsBk
 }
 
-# Get Backup Job Status Begin
-$bodyFileJobsBk = $null
-if ($showFileJobsBk -and $allFileJobsBk.Count -gt 0) {
-    $bodyFileJobsBk = @()
-    foreach ($bkJob in $allFileJobsBk) {
-        $bodyFileJobsBk += ($bkJob | Select-Object `
-            @{Name = "Job Name"; Expression = { $_.Name } },
-            @{Name = "Enabled"; Expression = { $_.IsScheduleEnabled } },
-            @{Name = "State"; Expression = {
-                if ($bkJob.IsRunning) {
-                    $s = $runningSessionsBk | Where-Object { $_.JobName -eq $bkJob.Name }
-                    if ($s) {
-                        "$($s.Progress.Percents)% completed at $([Math]::Round($s.Progress.AvgSpeed / 1MB, 2)) MB/s"
-                    } else {
-                        "Running (no session info)"
-                    }
-                } else {
-                    "Stopped"
-                }
-            }},
-            @{Name = "Target Repo"; Expression = {
-                ($repoList + $repoListSo | Where-Object { $_.Id -eq $bkJob.Info.TargetRepositoryId }).Name
-            }},
-            @{Name = "Next Run"; Expression = {
-                try {
-                    $s = Get-VBRJobScheduleOptions -Job $bkJob
-                    if (-not $bkJob.IsScheduleEnabled) {
-                        "Disabled"
-                    } elseif ($s.RunManually) {
-                        "Not Scheduled"
-                    } elseif ($s.IsContinious) {
-                        "Continious"
-                    } elseif ($s.OptionsScheduleAfterJob.IsEnabled) {
-                        "After [$(($allJobs + $allJobsTp | Where-Object { $_.Id -eq $bkJob.Info.ParentScheduleId }).Name)]"
-                    } else {
-                        $s.NextRun
-                    }
-                } catch {
-                    "Unavailable"
-                }
-            }},
-            @{Name = "Status"; Expression = {
-                if ($_.Info.LatestStatus -eq "None") { "Unknown" } else { $_.Info.LatestStatus.ToString() }
-            }}
-        )
-    }
-    $jsonHash["FileJobsBk"] = $bodyFileJobsBk
-    $bodyFileJobsBk = $bodyFileJobsBk | Sort-Object "Next Run" | ConvertTo-HTML -Fragment
-    $bodyFileJobsBk = $subHead01 + "File Backup Job Status" + $subHead02 + $bodyFileJobsBk
-}
-# Get File Backup Job Status End
 
 # Get all Backup Sessions
 $bodyAllSessBk = $null
@@ -3107,20 +3018,6 @@ if ($showJobsEp -and $allJobsEp.Count -gt 0) {
       $bodyJobsEp = $subHead01 + "Agent Backup Job Status" + $subHead02 + $bodyJobsEp
 }
 
-# Get Agent Backup Job Size
-$bodyJobSizeEp = $null
-If ($showBackupSizeEp) {
-If ($backupsEp.count -gt 0) {
-    $bodyJobSizeEp = Get-BackupSize -backups $backupsEp | Sort-Object JobName | Select-Object @{Name="Job Name"; Expression = {$_.JobName}},
-  @{Name="VM Count"; Expression = {$_.VMCount}},
-  @{Name="Repository"; Expression = {$_.Repo}},
-      @{Name="Backup Size (GB)"; Expression = {$_.LogSize}}
-    $jsonHash["JobsSizeAg"] = $bodyJobSizeEp
-    $bodyJobSizeEp = $bodyJobSizeEp | ConvertTo-HTML -Fragment
-    $bodyJobSizeEp = $subHead01 + "Agent Backup Job Size" + $subHead02 + $bodyJobSizeEp
-  }
-}
-
 # Get Agent Backup Sessions
 $bodyAllSessEp = @()
 $arrAllSessEp = @()
@@ -3717,9 +3614,9 @@ If ($bodyMultiJobs) {
   $htmlOutput += $HTMLbreak
 }
 
-$htmlOutput += $bodyJobsBk + $bodyJobSizeBk + $bodyFileJobsBk + $bodyFileJobSizeBk + $bodyAllSessBk + $bodyAllTasksBk + $bodyRunningBk + $bodyTasksRunningBk + $bodySessWFBk + $bodyTaskWFBk + $bodySessSuccBk + $bodyTaskSuccBk
+$htmlOutput += $bodyJobsBk  + $bodyAllSessBk + $bodyAllTasksBk + $bodyRunningBk + $bodyTasksRunningBk + $bodySessWFBk + $bodyTaskWFBk + $bodySessSuccBk + $bodyTaskSuccBk
 
-If ($bodyJobsBk + $bodyJobSizeBk + $bodyAllSessBk + $bodyAllTasksBk + $bodyRunningBk + $bodyTasksRunningBk + $bodySessWFBk + $bodyTaskWFBk + $bodySessSuccBk + $bodyTaskSuccBk) {
+If ($bodyJobsBk  + $bodyAllSessBk + $bodyAllTasksBk + $bodyRunningBk + $bodyTasksRunningBk + $bodySessWFBk + $bodyTaskWFBk + $bodySessSuccBk + $bodyTaskSuccBk) {
   $htmlOutput += $HTMLbreak
 }
 
@@ -3735,9 +3632,9 @@ If ($bodyJobsRp + $bodyAllSessRp + $bodyAllTasksRp + $bodyRunningRp + $bodyTasks
   $htmlOutput += $HTMLbreak
 }
 
-$htmlOutput += $bodyJobsBc + $bodyJobSizeBc + $bodyAllSessBc + $bodyAllTasksBc + $bodySessIdleBc + $bodyTasksPendingBc + $bodyRunningBc + $bodyTasksRunningBc + $bodySessWFBc + $bodyTaskWFBc + $bodySessSuccBc + $bodyTaskSuccBc
+$htmlOutput += $bodyJobsBc + $bodyAllSessBc + $bodyAllTasksBc + $bodySessIdleBc + $bodyTasksPendingBc + $bodyRunningBc + $bodyTasksRunningBc + $bodySessWFBc + $bodyTaskWFBc + $bodySessSuccBc + $bodyTaskSuccBc
 
-If ($bodyJobsBc + $bodyJobSizeBc + $bodyAllSessBc + $bodyAllTasksBc + $bodySessIdleBc + $bodyTasksPendingBc + $bodyRunningBc + $bodyTasksRunningBc + $bodySessWFBc + $bodyTaskWFBc + $bodySessSuccBc + $bodyTaskSuccBc) {
+If ($bodyJobsBc + $bodyAllSessBc + $bodyAllTasksBc + $bodySessIdleBc + $bodyTasksPendingBc + $bodyRunningBc + $bodyTasksRunningBc + $bodySessWFBc + $bodyTaskWFBc + $bodySessSuccBc + $bodyTaskSuccBc) {
   $htmlOutput += $HTMLbreak
 }
 
@@ -3753,9 +3650,9 @@ If ($bodyTapes + $bodyTpPool + $bodyTpVlt + $bodyExpTp + $bodyTpExpPool + $bodyT
   $htmlOutput += $HTMLbreak
 }
 
-$htmlOutput += $bodyJobsEp + $bodyJobSizeEp + $bodyAllSessEp + $bodyRunningEp + $bodySessWFEp + $bodySessSuccEp
+$htmlOutput += $bodyJobsEp + $bodyAllSessEp + $bodyRunningEp + $bodySessWFEp + $bodySessSuccEp
 
-If ($bodyJobsEp + $bodyJobSizeEp + $bodyAllSessEp + $bodyRunningEp + $bodySessWFEp + $bodySessSuccEp) {
+If ($bodyJobsEp  + $bodyAllSessEp + $bodyRunningEp + $bodySessWFEp + $bodySessSuccEp) {
   $htmlOutput += $HTMLbreak
 }
 
