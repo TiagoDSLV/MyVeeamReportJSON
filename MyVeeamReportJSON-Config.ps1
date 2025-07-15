@@ -1,9 +1,9 @@
 <#====================================================================
 Author        : Tiago DA SILVA - ATHEO INGENIERIE
-Version       : 1.0.0
+Version       : 1.0.1
 Creation Date : 2025-07-01
 Last Update   : 2025-07-01
-GitHub Repo   : https://github.com/TiagoDSLV/MyVeeamMonitoring
+GitHub Repo   : https://github.com/TiagoDSLV/MyVeeamReportJSON/
 ====================================================================
 
 DESCRIPTION:
@@ -24,8 +24,10 @@ infrastructure details like repositories, proxies and license status.
 
 # Nom du client
     $Client = ""
+  # Mail Collecteur GLPI
+    $MailGLPI = ""
 # Chemin du dossier où stocker les rapports
-    $pathJSON = "C:\Tools\MyVeeamReport\Reports\JSON"
+    $path = "C:\Tools\MyVeeamReport\Reports"
 # Rétention des fichiers de rapports JSON en jours
     $JPurge = 60
 	
@@ -73,24 +75,34 @@ infrastructure details like repositories, proxies and license status.
 
 # Variable à ne pas modifier sauf si nécessaire
 # Dates
-  $date_title = Get-Date -Format "dd/MM/yyyy HH:mm"
   $date_file = Get-Date -format ddMMyy_HHmm
 
 # VBR Server (Server Name, FQDN, IP or localhost)
 $vbrServer = $env:computername
 # Report Title
-$rptTitle = "$Client - Rapport de sauvegarde - $date_title "
+$rptTitle = "$Client - Rapport de sauvegarde"
+# Show VBR Server name in report header
+$showVBR = $true
+# HTML Report Width (Percent)
+$rptWidth = 97
+# HTML Table Odd Row color
+$oddColor = "#f0f0f0"
 
 # Location of Veeam Core dll  
 $VeeamCorePath = "C:\Program Files\Veeam\Backup and Replication\Backup\Veeam.Backup.Core.dll"
 
-# Save JSON output to a file
-$saveJSON = $true
 # JSON File output path and filename
 $pathJSON = $pathJSON + $Client + "_Rapport_Veeam_" + $date_file + ".json"
 # Launch JSON file after creation
 $launchJSON = $false
-
+# Save JSON output to a file
+$saveJSON = $true
+# JSON File output path and filename
+$pathHTML = $path + $Client + "_Rapport_Veeam_" + $date_file + ".html"
+# Launch HTML file after creation
+$launchHTML = $false
+# Save HTML output to a file
+$saveHTML = $true
 # Email Subject 
 $emailSubject = $rptTitle
 # Append Report Mode to Email Subject E.g. My Veeam Report (Last 24 Hours)
@@ -105,6 +117,8 @@ $dtSubject = $true
 $showSummaryProtect = $true
 # Show VMs with No Successful Backups within RPO ($reportMode)
 $showUnprotectedVMs = $true
+# Show unprotected VMs for informational purposes only
+$showUnprotectedVMsInfo = $true
 # Show VMs with Successful Backups within RPO ($reportMode)
 # Also shows VMs with Only Backups with Warnings within RPO ($reportMode)
 $showProtectedVMs = $true
@@ -119,8 +133,6 @@ $showSummaryBk = $SDBackup
 $showJobsBk = $False
 # Show File Backup Job Status
 $showFileJobsBk = $SDBackup
-# Show Backup Job Size (total)
-$showBackupSizeBk = $False
 # Show detailed information for Backup Jobs/Sessions (Avg Speed, Total(GB), Processed(GB), Read(GB), Transferred(GB), Dedupe, Compression)
 $showDetailedBk = $False
 # Show all Backup Sessions within time frame ($reportMode)
@@ -177,8 +189,6 @@ $replicaJob = @("")
 $showSummaryBc = $SDCopy
 # Show Backup Copy Job Status
 $showJobsBc = $False
-# Show Backup Copy Job Size (total)
-$showBackupSizeBc = $False
 # Show detailed information for Backup Copy Sessions (Avg Speed, Total(GB), Processed(GB), Read(GB), Transferred(GB), Dedupe, Compression)
 $showDetailedBc = $False
 # Show all Backup Copy Sessions within time frame ($reportMode)
