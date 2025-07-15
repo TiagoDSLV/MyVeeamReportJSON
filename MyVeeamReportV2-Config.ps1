@@ -22,6 +22,8 @@ infrastructure details like repositories, proxies and license status.
     $SDAgent = $true
     $SDSure =$true
 
+# Si infrastructure Hyper-V passer la valeur à $true
+    $isHyperV = $false
 # Nom du client
     $Client = ""
   # Mail Collecteur GLPI
