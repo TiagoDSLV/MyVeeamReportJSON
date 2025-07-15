@@ -1,6 +1,6 @@
 <#====================================================================
 Author        : Tiago DA SILVA - ATHEO INGENIERIE
-Version       : 1.0.1
+Version       : 1.0.2
 Creation Date : 2025-07-01
 Last Update   : 2025-07-01
 GitHub Repo   : https://github.com/TiagoDSLV/MyVeeamReportV2/
@@ -52,25 +52,26 @@ try {
     # Essayer de récupérer le script distant
     $remoteScriptContent = Invoke-RestMethod -Uri $FileURL -UseBasicParsing
     $remoteVersion = Get-VersionFromScript -Content $remoteScriptContent
+    if ($localVersion -ne $remoteVersion) {
+	    try {
+	        $remoteScriptContent | Set-Content -Path $OutputPath -Encoding UTF8 -Force
+	        Write-Host "Script updated."
+	        Write-Host "Restarting script..."
+	        Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File `"$OutputPath`""
+	        exit
+	    } catch {
+	        Write-Warning "Update error: $_"
+	    }
+     } else {
+	    Write-Host "Script is up to date."
+     }
 } catch {
     Write-Warning "Failed to retrieve remote script content: $_"
     # Optionnel : continuer avec l'ancien script sans mise à jour
     return
 }
 
-if ($localVersion -ne $remoteVersion) {
-    try {
-        $remoteScriptContent | Set-Content -Path $OutputPath -Encoding UTF8 -Force
-        Write-Host "Script updated."
-        Write-Host "Restarting script..."
-        Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File `"$OutputPath`""
-        exit
-    } catch {
-        Write-Warning "Update error: $_"
-    }
-} else {
-    Write-Host "Script is up to date."
-}
+
 
 #enregion
 
