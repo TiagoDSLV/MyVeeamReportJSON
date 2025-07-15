@@ -92,7 +92,7 @@ $oddColor = "#f0f0f0"
 $VeeamCorePath = "C:\Program Files\Veeam\Backup and Replication\Backup\Veeam.Backup.Core.dll"
 
 # JSON File output path and filename
-$pathJSON = $pathJSON + $Client + "_Rapport_Veeam_" + $date_file + ".json"
+$pathJSON = $path + $Client + "_Rapport_Veeam_" + $date_file + ".json"
 # Launch JSON file after creation
 $launchJSON = $false
 # Save JSON output to a file
