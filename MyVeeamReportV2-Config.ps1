@@ -121,7 +121,7 @@ $showUnprotectedVMs = $true
 $showUnprotectedVMsInfo = $true
 # Show VMs with Successful Backups within RPO ($reportMode)
 # Also shows VMs with Only Backups with Warnings within RPO ($reportMode)
-$showProtectedVMs = $true
+$showProtectedVMs = $false
 
 
 # Show VMs Backed Up by Multiple Jobs within time frame ($reportMode)
