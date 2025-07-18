@@ -27,7 +27,7 @@ infrastructure details like repositories, proxies and license status.
   # Mail Collecteur GLPI
     $MailGLPI = ""
 # Chemin du dossier où stocker les rapports
-    $path = "C:\Tools\MyVeeamReport\Reports"
+    $path = "C:\Tools\MyVeeamReport\Reports\"
 # Rétention des fichiers de rapports JSON en jours
     $JPurge = 60
 	
