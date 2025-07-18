@@ -1,6 +1,6 @@
 <#====================================================================
 Author        : Tiago DA SILVA - ATHEO INGENIERIE
-Version       : 1.0.1
+Version       : 1.0.2
 Creation Date : 2025-07-01
 Last Update   : 2025-07-01
 GitHub Repo   : https://github.com/TiagoDSLV/MyVeeamReportV2/
@@ -22,8 +22,6 @@ infrastructure details like repositories, proxies and license status.
     $SDAgent = $true
     $SDSure =$true
 
-# Si infrastructure Hyper-V passer la valeur à $true
-    $isHyperV = $false
 # Nom du client
     $Client = ""
   # Mail Collecteur GLPI
@@ -138,7 +136,7 @@ $showDetailedBk = $False
 # Show all Backup Sessions within time frame ($reportMode)
 $showAllSessBk = $False
 # Show all Backup Tasks from Sessions within time frame ($reportMode)
-$showAllTasksBk = $False
+$showAllTasksBk = $SDBackup
 # Show Running Backup Jobs
 $showRunningBk = $False
 # Show Running Backup Tasks
