@@ -67,11 +67,7 @@ try {
      }
 } catch {
     Write-Warning "Failed to retrieve remote script content: $_"
-    # Optionnel : continuer avec l'ancien script sans mise à jour
-    return
 }
-
-
 
 #enregion
 
@@ -1468,7 +1464,7 @@ If ($showDetailedBk) {
     @{Name="Start Time"; Expression = {$_.Progress.StartTimeLocal.ToString("dd/MM/yyyy HH:mm")}},
     @{Name="Stop Time"; Expression = {$_.Progress.StopTimeLocal.ToString("dd/MM/yyyy HH:mm")}},
     @{Name="Duration (HH:MM:SS)"; Expression = {Get-Duration -ts $_.Progress.Duration}},
-    @{Name="Details"; Expression = {($_.GetDetails()).Replace("<br />","ZZbrZZ")}}, Status
+    @{Name="Details"; Expression = {($_.GetDetails()).Replace("<br />","ZZbrZZ")}}, @{Name="Status"; Expression = {($_.Status.ToString())}}
       $bodyTaskWFBk = $arrTaskWFBk | Sort-Object "Start Time"
       $jsonHash["TaskWFBk"] = $bodyTaskWFBk
       $bodyTaskWFBk = $bodyTaskWFBk | ConvertTo-HTML -Fragment
